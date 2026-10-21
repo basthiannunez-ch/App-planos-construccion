@@ -1,0 +1,13 @@
+{
+  "name": "Planos de construcción",
+  "short_name": "Planos",
+  "description": "Planos con medidas, materiales y pasos para muebles y construcciones.",
+  "lang": "es",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f5f2",
+  "theme_color": "#1f4e79",
+  "icons": [
+    { "src": "icono.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
