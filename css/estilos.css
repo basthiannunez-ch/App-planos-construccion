@@ -168,7 +168,7 @@ button { font: inherit; color: inherit; }
 
 .categorias {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 12px;
 }
 
@@ -391,6 +391,7 @@ button { font: inherit; color: inherit; }
 .p-oculto { fill: none; stroke: var(--madera-borde); stroke-width: 1; stroke-dasharray: 5 4; }
 .p-techo { fill: var(--madera); stroke: var(--madera-borde); stroke-width: 1.2; }
 .p-linea { stroke: var(--muro); stroke-width: 0.8; }
+.p-veta { stroke: var(--madera-borde); stroke-width: 0.6; stroke-opacity: 0.7; }
 .p-puerta { stroke: var(--muro); stroke-width: 1.5; }
 .p-puerta-arco { fill: none; stroke: var(--muro); stroke-width: 0.8; stroke-dasharray: 4 3; }
 .p-texto { fill: var(--suave); text-anchor: middle; font-weight: 600; }

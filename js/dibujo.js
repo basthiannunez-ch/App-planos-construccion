@@ -53,6 +53,15 @@ function pieza(p, fuente) {
     }
     case 'texto':
       return `<text class="p-texto${p.chico ? ' chico' : ''}" x="${p.x}" y="${p.y}" font-size="${fuente * (p.chico ? 0.8 : 1)}">${p.texto}</text>`;
+    case 'tinglado': {
+      // Revestimiento de tablas traslapadas: un rectángulo de madera con una línea por tabla.
+      const paso = p.paso || 15;
+      let lineas = '';
+      for (let y = p.y + paso; y < p.y + p.h; y += paso) {
+        lineas += `<line class="p-veta" x1="${p.x}" y1="${y}" x2="${p.x + p.w}" y2="${y}"/>`;
+      }
+      return `<rect class="p-madera" x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}"/>${lineas}`;
+    }
     case 'ventana':
       return `<rect class="p-ventana" x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}"/>`
         + (p.w > p.h

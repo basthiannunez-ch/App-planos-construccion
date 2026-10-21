@@ -81,11 +81,11 @@ function normalizar(s) {
 
 function pantallaInicio() {
   titulo.textContent = 'Planos';
-  const destacados = ['mesa-comedor', 'cabana-prefabricada', 'estanteria', 'habitacion'].map(buscarPlano);
+  const destacados = ['cabana-madera', 'mesa-comedor', 'quincho', 'cama-dos-plazas', 'pergola', 'habitacion'].map(buscarPlano);
   app.innerHTML = `
     <section class="hero">
       <h2>¿Qué quieres construir hoy?</h2>
-      <p>Planos con medidas, materiales y pasos para muebles y construcciones.</p>
+      <p>Planos con medidas, materiales y pasos para trabajar en madera.</p>
       <form class="buscador" id="form-buscar" role="search">
         <input type="search" id="buscar" placeholder="Buscar: mesa, cabaña, deck…" autocomplete="off" aria-label="Buscar planos">
       </form>
