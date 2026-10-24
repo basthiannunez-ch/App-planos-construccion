@@ -53,10 +53,71 @@ function medidasTexto(p, { conAlto = true } = {}) {
   return conAlto ? `${largo} × ${ancho} × ${alto} cm` : `${largo} × ${ancho} cm`;
 }
 
+// Imágenes del objeto terminado. El motor 3D se carga aparte: si falla, quedan los dibujos.
+let motor3d = null;
+const cargar3d = () => (motor3d ??= import('./render3d.js').catch(() => null));
+const fotos = new Map();
+const cola = [];
+let trabajando = false;
+let limpiar3d = null;
+
+function mostrarFoto(el, url) {
+  if (el.querySelector('img')) return;
+  const img = new Image();
+  img.alt = '';
+  img.className = 'foto';
+  img.src = url;
+  el.append(img);
+  el.classList.add('con-foto');
+}
+
+async function procesarCola() {
+  if (trabajando) return;
+  trabajando = true;
+  const m = await cargar3d();
+  while (cola.length) {
+    const el = cola.shift();
+    if (!el.isConnected) continue;
+    const id = el.dataset.foto;
+    if (!fotos.has(id) && m) {
+      try {
+        fotos.set(id, m.foto(buscarPlano(id)));
+      } catch {
+        fotos.set(id, null);
+      }
+    }
+    if (fotos.get(id)) mostrarFoto(el, fotos.get(id));
+    await new Promise((listo) => setTimeout(listo, 0));
+  }
+  trabajando = false;
+}
+
+const observador = 'IntersectionObserver' in window
+  ? new IntersectionObserver((entradas) => {
+    for (const e of entradas) {
+      if (!e.isIntersecting) continue;
+      observador.unobserve(e.target);
+      cola.push(e.target);
+      procesarCola();
+    }
+  }, { rootMargin: '300px' })
+  : null;
+
+function activarFotos(raiz = app) {
+  raiz.querySelectorAll('[data-foto]').forEach((el) => {
+    if (fotos.get(el.dataset.foto)) mostrarFoto(el, fotos.get(el.dataset.foto));
+    else if (observador) observador.observe(el);
+    else {
+      cola.push(el);
+      procesarCola();
+    }
+  });
+}
+
 function tarjeta(p) {
   const fav = favoritos.has(p.id);
   return `<a class="tarjeta" href="#/plano/${p.id}">
-    <div class="tarjeta-mini">${dibujarVista(p.vistas[0], p.unidad, { conCotas: false })}</div>
+    <div class="tarjeta-foto" data-foto="${p.id}">${dibujarVista(p.vistas[0], p.unidad, { conCotas: false })}</div>
     <div class="tarjeta-cuerpo">
       <h3>${esc(p.nombre)}${fav ? ' <span class="estrella" aria-label="Favorito">★</span>' : ''}</h3>
       <p class="tarjeta-medidas">${medidasTexto(p)}</p>
@@ -85,7 +146,7 @@ function pantallaInicio() {
   app.innerHTML = `
     <section class="hero">
       <h2>¿Qué quieres construir hoy?</h2>
-      <p>Planos con medidas, materiales y pasos para trabajar en madera.</p>
+      <p>${PLANOS.length} planos con medidas, materiales y pasos para trabajar en madera.</p>
       <form class="buscador" id="form-buscar" role="search">
         <input type="search" id="buscar" placeholder="Buscar: mesa, cabaña, deck…" autocomplete="off" aria-label="Buscar planos">
       </form>
@@ -103,6 +164,7 @@ function pantallaInicio() {
     <h2 class="seccion">Destacados</h2>
     ${listaTarjetas(destacados, '')}
   `;
+  activarFotos();
   document.getElementById('form-buscar').addEventListener('submit', (e) => {
     e.preventDefault();
     const q = document.getElementById('buscar').value.trim();
@@ -127,7 +189,9 @@ function pantallaCatalogo(categoria = 'todos', consulta = '') {
     const q = normalizar(input.value.trim());
     const planos = PLANOS.filter((p) => (categoria === 'todos' || p.categoria === categoria)
       && (!q || normalizar(`${p.nombre} ${p.resumen}`).includes(q)));
-    document.getElementById('resultados').innerHTML = listaTarjetas(planos, 'No encontramos planos con esa búsqueda.');
+    const resultados = document.getElementById('resultados');
+    resultados.innerHTML = listaTarjetas(planos, 'No encontramos planos con esa búsqueda.');
+    activarFotos(resultados);
   };
   input.addEventListener('input', pintar);
   document.getElementById('form-buscar').addEventListener('submit', (e) => {
@@ -141,6 +205,7 @@ function pantallaFavoritos() {
   titulo.textContent = 'Favoritos';
   const planos = PLANOS.filter((p) => favoritos.has(p.id));
   app.innerHTML = listaTarjetas(planos, 'Aún no tienes favoritos. Toca la ☆ en un plano para guardarlo aquí.');
+  activarFotos();
 }
 
 function listaChequeo(plano, lista, items, render) {
@@ -171,9 +236,10 @@ function pantallaPlano(id) {
     <article class="plano">
       <div class="visor">
         <div class="vistas" role="tablist">
-          ${p.vistas.map((v, i) => `<button role="tab" class="chip${i === 0 ? ' activo' : ''}" data-vista="${i}" aria-selected="${i === 0}">${v.nombre}</button>`).join('')}
+          <button role="tab" class="chip activo" data-vista="3d" aria-selected="true">Terminado</button>
+          ${p.vistas.map((v, i) => `<button role="tab" class="chip" data-vista="${i}" aria-selected="false">${v.nombre}</button>`).join('')}
         </div>
-        <div class="lienzo" id="lienzo">${dibujarVista(p.vistas[0], p.unidad)}</div>
+        <div class="lienzo" id="lienzo"></div>
       </div>
 
       <header class="plano-cabecera">
@@ -227,8 +293,31 @@ function pantallaPlano(id) {
       o.classList.toggle('activo', o === b);
       o.setAttribute('aria-selected', o === b);
     });
-    document.getElementById('lienzo').innerHTML = dibujarVista(p.vistas[+b.dataset.vista], p.unidad);
+    mostrarVista(b.dataset.vista);
   }));
+
+  function mostrarVista(v) {
+    limpiar3d?.();
+    limpiar3d = null;
+    const lienzo = document.getElementById('lienzo');
+    if (v !== '3d') {
+      lienzo.innerHTML = dibujarVista(p.vistas[+v], p.unidad);
+      return;
+    }
+    lienzo.innerHTML = `<div class="lienzo-3d"><div class="cargando">${fotos.get(p.id) ? `<img src="${fotos.get(p.id)}" alt="">` : 'Preparando imagen…'}</div></div>
+      <p class="ayuda-3d">Desliza para girar · así se verá terminado</p>`;
+    cargar3d().then((m) => {
+      const cont = lienzo.querySelector('.lienzo-3d');
+      if (!cont || !cont.isConnected) return;
+      try {
+        if (!m) throw new Error('sin 3D');
+        limpiar3d = m.visor(p, cont);
+      } catch {
+        lienzo.innerHTML = dibujarVista(p.vistas[0], p.unidad);
+      }
+    });
+  }
+  mostrarVista('3d');
 
   app.querySelectorAll('.pestana').forEach((b) => b.addEventListener('click', () => {
     app.querySelectorAll('.pestana').forEach((o) => {
@@ -284,6 +373,8 @@ function aviso(texto) {
 
 function ruta() {
   const [, seccion, a, b] = location.hash.split('/');
+  limpiar3d?.();
+  limpiar3d = null;
   volver.hidden = seccion !== 'plano';
 
   document.querySelectorAll('.nav a').forEach((link) => {

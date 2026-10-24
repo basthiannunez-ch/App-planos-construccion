@@ -1,3 +1,6 @@
+import { edificio, abierto, deck, mesa } from '../familias.js';
+import { caja } from '../modelos.js';
+
 // Construcciones mayores en madera: plataforma sobre polines, tabiquería de pino y revestimiento de tinglado.
 // Coordenadas en centímetros.
 
@@ -9,13 +12,15 @@ const notaProfesional = 'Ejemplo orientativo: no reemplaza un proyecto firmado p
 export default [
   {
     id: 'habitacion', categoria: 'construcciones', nombre: 'Habitación de madera 3 × 3,5 m',
+    modelo: edificio({ L: 300, W: 350, H: 240, techo: 'uno', alto: 'f', alzada: 40, puertas: [{ lado: 'f', pos: 40, w: 80 }], ventanas: [{ lado: 'b', pos: 90 }, { lado: 'd', pos: 120, w: 100 }] }),
     resumen: 'Pieza independiente sobre polines, con tabiquería de pino, tinglado y techo a un agua.',
     medidas: { largo: 350, ancho: 300, alto: 270 }, unidad: 'm', dificultad: 3, tiempo: '3 a 4 semanas', personas: 2,
     vistas: [
       { nombre: 'Planta', piezas: [
           { tipo: 'muro', x: 0, y: 0, w: 90, h: 12 }, { tipo: 'ventana', x: 90, y: 0, w: 120, h: 12 },
           { tipo: 'muro', x: 210, y: 0, w: 90, h: 12 }, { tipo: 'muro', x: 0, y: 12, w: 12, h: 326 },
-          { tipo: 'muro', x: 288, y: 12, w: 12, h: 326 }, { tipo: 'muro', x: 0, y: 338, w: 40, h: 12 },
+          { tipo: 'muro', x: 288, y: 12, w: 12, h: 108 }, { tipo: 'ventana', x: 288, y: 120, w: 12, h: 100 },
+          { tipo: 'muro', x: 288, y: 220, w: 12, h: 118 }, { tipo: 'muro', x: 0, y: 338, w: 40, h: 12 },
           { tipo: 'muro', x: 120, y: 338, w: 180, h: 12 }, { tipo: 'puerta', x: 40, y: 338, r: 80, a1: 0, a2: -90 },
           { tipo: 'texto', x: 150, y: 175, texto: 'Dormitorio' }, { tipo: 'texto', x: 150, y: 200, texto: '9,7 m²', chico: true },
         ], cotas: [
@@ -74,6 +79,7 @@ export default [
   },
   {
     id: 'extension-casa', categoria: 'construcciones', nombre: 'Extensión de casa en madera 4 × 5 m',
+    modelo: [...edificio({ L: 400, W: 500, H: 240, techo: 'uno', alto: 'b', alzada: 30, puertas: [{ lado: 'd', pos: 300 }], ventanas: [{ lado: 'f', pos: 140 }, { lado: 'i', pos: 200 }] }), caja(-150, 0, -420, 700, 330, 420, 'pared'), caja(-170, 330, -440, 740, 12, 460, 'techo')],
     resumen: 'Ampliación adosada con estructura de pino, piso sobre polines y techo mono-pendiente.',
     medidas: { largo: 500, ancho: 400, alto: 240 }, unidad: 'm', dificultad: 3, tiempo: '5 a 6 semanas', personas: 2,
     vistas: [
@@ -131,6 +137,7 @@ export default [
   },
   {
     id: 'cabana-madera', categoria: 'construcciones', nombre: 'Cabaña de madera 6 × 4 m',
+    modelo: edificio({ L: 600, W: 400, H: 240, cumbrera: 'x', alzada: 110, puertas: [{ lado: 'f', pos: 80 }], ventanas: [{ lado: 'b', pos: 150, w: 150 }, { lado: 'i', pos: 140 }, { lado: 'f', pos: 300, w: 150 }], tabiques: [{ x1: 450, z1: 12, x2: 450, z2: 200 }, { x1: 450, z1: 192, x2: 588, z2: 192 }] }),
     resumen: 'Cabaña de entramado de pino sobre polines, con estar-cocina, baño y techo a dos aguas.',
     medidas: { largo: 600, ancho: 400, alto: 360 }, unidad: 'm', dificultad: 3, tiempo: '4 a 6 semanas', personas: 3,
     vistas: [
@@ -139,7 +146,8 @@ export default [
           { tipo: 'muro', x: 300, y: 0, w: 300, h: 12 }, { tipo: 'muro', x: 0, y: 12, w: 12, h: 128 },
           { tipo: 'ventana', x: 0, y: 140, w: 12, h: 120 }, { tipo: 'muro', x: 0, y: 260, w: 12, h: 128 },
           { tipo: 'muro', x: 588, y: 12, w: 12, h: 376 }, { tipo: 'muro', x: 0, y: 388, w: 80, h: 12 },
-          { tipo: 'muro', x: 170, y: 388, w: 430, h: 12 }, { tipo: 'puerta', x: 80, y: 388, r: 90, a1: 0, a2: -90 },
+          { tipo: 'muro', x: 170, y: 388, w: 130, h: 12 }, { tipo: 'ventana', x: 300, y: 388, w: 150, h: 12 },
+          { tipo: 'muro', x: 450, y: 388, w: 150, h: 12 }, { tipo: 'puerta', x: 80, y: 388, r: 90, a1: 0, a2: -90 },
           { tipo: 'muro', x: 450, y: 12, w: 8, h: 188 }, { tipo: 'muro', x: 458, y: 192, w: 40, h: 8 },
           { tipo: 'muro', x: 568, y: 192, w: 20, h: 8 }, { tipo: 'puerta', x: 498, y: 200, r: 70, a1: 0, a2: 90 },
           { tipo: 'texto', x: 230, y: 200, texto: 'Estar / cocina' }, { tipo: 'texto', x: 519, y: 100, texto: 'Baño' },
@@ -150,7 +158,7 @@ export default [
       { nombre: 'Fachada', piezas: [
           { tipo: 'poligono', puntos: [[0, 100], [300, 10], [600, 100]] },
           { tipo: 'poligono', puntos: [[-30, 110], [300, 0], [630, 110], [600, 110], [300, 10], [0, 110]] },
-          { tipo: 'tinglado', x: 0, y: 100, w: 600, h: 240, paso: 16 }, { tipo: 'hueco', x: 80, y: 130, w: 90, h: 210 },
+          { tipo: 'tinglado', x: 0, y: 100, w: 600, h: 240, paso: 16 }, { tipo: 'hueco', x: 80, y: 130, w: 90, h: 210 }, { tipo: 'ventana', x: 300, y: 195, w: 150, h: 100 },
           { tipo: 'madera', x: 0, y: 340, w: 600, h: 20 }, ...polines([20, 200, 384, 568], 360),
         ], cotas: [
           { x1: 600, y1: 0, x2: 600, y2: 360, off: 50 }, { x1: 0, y1: 400, x2: 600, y2: 400, off: 25 },
@@ -185,6 +193,7 @@ export default [
   },
   {
     id: 'bodega-jardin', categoria: 'construcciones', nombre: 'Bodega de jardín 3 × 2 m',
+    modelo: edificio({ L: 300, W: 200, H: 200, piso: 25, alzada: 45, puertas: [{ lado: 'f', pos: 90, w: 120, h: 180 }], ventanas: [{ lado: 'd', pos: 50, w: 80, h: 50, alt: 110 }] }),
     resumen: 'Bodega de madera con puerta doble, ideal para herramientas y bicicletas.',
     medidas: { largo: 300, ancho: 200, alto: 240 }, unidad: 'm', dificultad: 2, tiempo: '2 fines de semana', personas: 2,
     vistas: [
@@ -231,6 +240,7 @@ export default [
   },
   {
     id: 'quincho', categoria: 'construcciones', nombre: 'Quincho de madera 4 × 4 m',
+    modelo: [...abierto({ L: 400, W: 400, H: 210, pilar: 15, nx: 3, nz: 2, alzada: 110 }), caja(15, 0, 15, 300, 90, 60, 'imp'), caja(15, 90, 13, 302, 4, 64, 'tablero'), caja(15, 0, 75, 60, 90, 145, 'imp'), caja(13, 90, 75, 64, 4, 147, 'tablero'), caja(120, 94, 20, 90, 60, 45, 'ladrillo'), caja(125, 154, 25, 80, 3, 35, 'fuego'), ...mesa({ L: 150, W: 80, H: 75, m: 'imp', tablas: 14 }).map((q) => ({ ...q, x: q.x + 160, z: q.z + 220 }))],
     resumen: 'Espacio techado abierto con mesón en L para asados y reuniones.',
     medidas: { largo: 400, ancho: 400, alto: 330 }, unidad: 'm', dificultad: 3, tiempo: '3 semanas', personas: 2,
     vistas: [
@@ -284,6 +294,7 @@ export default [
   },
   {
     id: 'terraza-deck', categoria: 'construcciones', nombre: 'Terraza de madera 4 × 3 m',
+    modelo: deck({ L: 400, W: 300, h: 60 }),
     resumen: 'Deck elevado sobre polines con vigas y tablas de pino impregnado.',
     medidas: { largo: 400, ancho: 300, alto: 60 }, unidad: 'm', dificultad: 2, tiempo: '2 fines de semana', personas: 2,
     vistas: [

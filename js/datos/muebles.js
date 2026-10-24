@@ -1,3 +1,6 @@
+import { mesa, mueble, cama, estante, silla } from '../familias.js';
+import { repisaFlotante } from '../especiales.js';
+
 // Planos de muebles de interior. Coordenadas en centímetros, eje Y hacia abajo.
 
 const tablillasCama = Array.from({ length: 12 }, (_, i) => ({ tipo: 'oculto', x: 4, y: 22 + i * 14.5, w: 152, h: 8 }));
@@ -5,6 +8,7 @@ const tablillasCama = Array.from({ length: 12 }, (_, i) => ({ tipo: 'oculto', x:
 export default [
   {
     id: 'mesa-comedor', categoria: 'muebles', nombre: 'Mesa de comedor',
+    modelo: mesa({ L: 180, W: 90, H: 75, tablas: 18.5, sep: 0.2, fald: 10 }),
     resumen: 'Mesa robusta de pino para 6 personas, con faldones y patas de 7×7 cm.',
     medidas: { largo: 180, ancho: 90, alto: 75 }, unidad: 'cm', dificultad: 2, tiempo: '2 fines de semana', personas: 1,
     vistas: [
@@ -45,6 +49,7 @@ export default [
   },
   {
     id: 'escritorio', categoria: 'muebles', nombre: 'Escritorio',
+    modelo: mesa({ L: 120, W: 60, H: 75, pata: 4.1, cub: 2.8, fald: 8, vuelo: 3, trav: 10, cajon: true }),
     resumen: 'Escritorio de pino de 120 cm con travesaño bajo para apoyar los pies.',
     medidas: { largo: 120, ancho: 60, alto: 75 }, unidad: 'cm', dificultad: 1, tiempo: '1 día', personas: 1,
     vistas: [
@@ -82,6 +87,7 @@ export default [
   },
   {
     id: 'mesa-centro', categoria: 'muebles', nombre: 'Mesa de centro',
+    modelo: mesa({ L: 100, W: 50, H: 45, pata: 6, tablas: 12.5, sep: 0.3, fald: 6, repisa: 10 }),
     resumen: 'Mesa baja de living con repisa inferior para revistas.',
     medidas: { largo: 100, ancho: 50, alto: 45 }, unidad: 'cm', dificultad: 1, tiempo: '1 día', personas: 1,
     vistas: [
@@ -118,6 +124,7 @@ export default [
   },
   {
     id: 'velador', categoria: 'muebles', nombre: 'Velador con cajón',
+    modelo: mueble({ L: 45, W: 40, H: 55, base: 'patas', hb: 10, sobre: 2, repisas: [28], frentes: [{ tipo: 'cajon', x: 0.2, y: 38, w: 44.6, h: 14 }] }),
     resumen: 'Mesa de noche con un cajón y una repisa abierta, sobre patas cortas.',
     medidas: { largo: 45, ancho: 40, alto: 55 }, unidad: 'cm', dificultad: 2, tiempo: '1 día', personas: 1,
     vistas: [
@@ -158,6 +165,7 @@ export default [
   },
   {
     id: 'cama-dos-plazas', categoria: 'muebles', nombre: 'Cama de 2 plazas con respaldo',
+    modelo: cama({ W: 150, Lc: 190, respaldo: 100 }),
     resumen: 'Base de madera para colchón de 150 × 190 cm, con tablillas y respaldo de tablas.',
     medidas: { largo: 200, ancho: 160, alto: 100 }, unidad: 'cm', dificultad: 2, tiempo: '1 fin de semana', personas: 2,
     vistas: [
@@ -198,6 +206,7 @@ export default [
   },
   {
     id: 'ropero', categoria: 'muebles', nombre: 'Ropero de 2 puertas',
+    modelo: mueble({ L: 100, W: 55, H: 200, frentes: [{ tipo: 'puerta', x: 0.2, y: 10.2, w: 49.6, h: 189.6 }, { tipo: 'puerta', x: 50.2, y: 10.2, w: 49.6, h: 189.6, lado: 'izq' }] }),
     resumen: 'Closet independiente con barra para colgar y repisa superior.',
     medidas: { largo: 100, ancho: 55, alto: 200 }, unidad: 'cm', dificultad: 2, tiempo: '1 fin de semana', personas: 2,
     vistas: [
@@ -239,6 +248,7 @@ export default [
   },
   {
     id: 'estanteria', categoria: 'muebles', nombre: 'Estantería de 5 repisas',
+    modelo: estante({ L: 80, W: 30, H: 180, niveles: 5, zocalo: 10 }),
     resumen: 'Librero simple de tablero de 18 mm con zócalo y fondo de MDF.',
     medidas: { largo: 80, ancho: 30, alto: 180 }, unidad: 'cm', dificultad: 1, tiempo: '1 día', personas: 1,
     vistas: [
@@ -280,6 +290,7 @@ export default [
   },
   {
     id: 'zapatero', categoria: 'muebles', nombre: 'Zapatero de entrada',
+    modelo: mueble({ L: 80, W: 30, H: 50, sobre: 3, repisas: [20], hb: 5 }),
     resumen: 'Mueble bajo de 3 niveles para zapatos, que también sirve de banca.',
     medidas: { largo: 80, ancho: 30, alto: 50 }, unidad: 'cm', dificultad: 1, tiempo: '1 tarde', personas: 1,
     vistas: [
@@ -313,6 +324,7 @@ export default [
   },
   {
     id: 'piso-cocina', categoria: 'muebles', nombre: 'Piso alto de cocina',
+    modelo: silla({ A: 35, P: 35, hs: 65, apoyapies: 20 }),
     resumen: 'Taburete alto para isla o barra, con apoyapiés.',
     medidas: { largo: 35, ancho: 35, alto: 65 }, unidad: 'cm', dificultad: 2, tiempo: '1 tarde', personas: 1,
     vistas: [
@@ -349,6 +361,7 @@ export default [
   },
   {
     id: 'mueble-cocina', categoria: 'muebles', nombre: 'Mueble bajo de cocina',
+    modelo: mueble({ L: 60, W: 56, H: 88, sobre: 3, frentes: [{ tipo: 'cajon', x: 0.2, y: 68.5, w: 59.6, h: 16 }, { tipo: 'puerta', x: 0.2, y: 10.2, w: 59.6, h: 57.8 }] }),
     resumen: 'Módulo de 60 cm en tablero de pino con un cajón, una puerta y zócalo.',
     medidas: { largo: 60, ancho: 60, alto: 85 }, unidad: 'cm', dificultad: 2, tiempo: '1 día', personas: 1,
     vistas: [
@@ -393,6 +406,7 @@ export default [
   },
   {
     id: 'repisa-flotante', categoria: 'muebles', nombre: 'Repisa flotante',
+    modelo: repisaFlotante(),
     resumen: 'Repisa sin soportes visibles: un listón oculto en el muro y una caja que se encaja encima.',
     medidas: { largo: 80, ancho: 20, alto: 5 }, unidad: 'cm', dificultad: 1, tiempo: '3 horas', personas: 1,
     vistas: [

@@ -189,14 +189,11 @@ button { font: inherit; color: inherit; }
 .categoria-cuenta { margin-top: auto; padding-top: 6px; color: var(--azul); font-weight: 600; }
 
 /* Tarjetas */
-.lista { display: grid; gap: 12px; }
-
-@media (min-width: 640px) {
-  .lista { grid-template-columns: repeat(2, 1fr); }
-}
+.lista { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); }
 
 .tarjeta {
   display: flex;
+  flex-direction: column;
   overflow: hidden;
   border-radius: var(--radio);
   background: var(--superficie);
@@ -205,22 +202,34 @@ button { font: inherit; color: inherit; }
 
 .tarjeta:active { transform: scale(0.99); }
 
-.tarjeta-mini {
-  flex: 0 0 104px;
+.tarjeta-foto {
+  position: relative;
+  aspect-ratio: 4 / 3;
   display: grid;
   place-items: center;
-  padding: 8px;
+  padding: 10px;
   background:
     linear-gradient(var(--cuadricula) 1px, transparent 1px) 0 0 / 12px 12px,
     linear-gradient(90deg, var(--cuadricula) 1px, transparent 1px) 0 0 / 12px 12px,
     var(--papel);
-  border-right: 1px solid var(--borde);
+  border-bottom: 1px solid var(--borde);
 }
 
-.tarjeta-mini svg { width: 100%; height: 88px; }
+.tarjeta-foto svg { width: 100%; height: 100%; }
 
-.tarjeta-cuerpo { padding: 12px 14px; min-width: 0; }
-.tarjeta-cuerpo h3 { margin: 0 0 2px; font-size: 1rem; }
+.tarjeta-foto .foto {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: aparecer 0.35s ease;
+}
+
+@keyframes aparecer { from { opacity: 0; } to { opacity: 1; } }
+
+.tarjeta-cuerpo { padding: 10px 12px 12px; min-width: 0; }
+.tarjeta-cuerpo h3 { margin: 0 0 2px; font-size: 0.95rem; line-height: 1.25; }
 .tarjeta-medidas { margin: 0 0 8px; color: var(--suave); font-size: 0.85rem; }
 .estrella { color: #e0a800; }
 
@@ -277,6 +286,20 @@ button { font: inherit; color: inherit; }
 .visor .vistas { margin-bottom: 8px; }
 
 .lienzo svg { display: block; width: 100%; height: auto; max-height: 55vh; }
+
+.lienzo-3d {
+  overflow: hidden;
+  border-radius: 12px;
+  aspect-ratio: 4 / 3;
+  max-height: 60vh;
+  margin: 0 auto;
+  background: var(--fondo);
+}
+
+.lienzo-3d canvas { display: block; width: 100%; touch-action: pan-y; cursor: grab; }
+.lienzo-3d .cargando { height: 100%; display: grid; place-items: center; color: var(--suave); font-size: 0.9rem; }
+.lienzo-3d .cargando img { width: 100%; height: 100%; object-fit: cover; }
+.ayuda-3d { margin: 6px 0 0; text-align: center; font-size: 0.75rem; color: var(--suave); }
 
 .plano-cabecera { padding-top: 16px; }
 .miga { font-size: 0.8rem; color: var(--suave); }

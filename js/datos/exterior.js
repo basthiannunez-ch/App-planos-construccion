@@ -1,3 +1,7 @@
+import { mesa, cajon, abierto } from '../familias.js';
+import { picnic, casaPerro, lenera, cerco } from '../especiales.js';
+import { caja } from '../modelos.js';
+
 // Planos de jardín y exterior, todos en madera impregnada. Coordenadas en centímetros.
 
 const tablasCerco = Array.from({ length: 15 }, (_, i) => ({ tipo: 'madera', x: 10 + i * 14.7, y: 5, w: 12, h: 170 }));
@@ -7,6 +11,7 @@ const cabiosFrente = Array.from({ length: 8 }, (_, i) => ({ tipo: 'madera', x: i
 export default [
   {
     id: 'banco-jardin', categoria: 'exterior', nombre: 'Banco de jardín',
+    modelo: mesa({ L: 120, W: 40, H: 45, pata: 7, cub: 4.1, tablas: 9, sep: 1.3, fald: 9, vuelo: 8, trav: 6, m: 'imp' }),
     resumen: 'Banco de exterior en pino impregnado, ideal como primer proyecto.',
     medidas: { largo: 120, ancho: 40, alto: 45 }, unidad: 'cm', dificultad: 1, tiempo: '1 tarde', personas: 1,
     vistas: [
@@ -42,6 +47,7 @@ export default [
   },
   {
     id: 'mesa-picnic', categoria: 'exterior', nombre: 'Mesa de picnic',
+    modelo: picnic({ L: 180 }),
     resumen: 'Clásica mesa de exterior con bancas integradas para 6 personas.',
     medidas: { largo: 180, ancho: 150, alto: 75 }, unidad: 'cm', dificultad: 2, tiempo: '1 fin de semana', personas: 2,
     vistas: [
@@ -82,6 +88,7 @@ export default [
   },
   {
     id: 'jardinera-elevada', categoria: 'exterior', nombre: 'Huerto elevado',
+    modelo: [...cajon({ L: 120, W: 60, H: 70, patas: 14, fondo: true }), caja(2, 64, 2, 116, 2, 56, 'tierra'), ...[0, 1, 2, 3, 4].map((i) => caja(10 + i * 21, 66, 15 + (i % 2) * 15, 14, 14 + (i % 3) * 6, 14, 'verde'))],
     resumen: 'Jardinera alta de tablas para cultivar sin agacharse.',
     medidas: { largo: 120, ancho: 60, alto: 70 }, unidad: 'cm', dificultad: 1, tiempo: '1 tarde', personas: 1,
     vistas: [
@@ -118,6 +125,7 @@ export default [
   },
   {
     id: 'casa-perro', categoria: 'exterior', nombre: 'Casa para perro',
+    modelo: casaPerro({ L: 80, W: 100, H: 55 }),
     resumen: 'Casita aislada del suelo, con techo a dos aguas y tinglado de madera.',
     medidas: { largo: 100, ancho: 80, alto: 90 }, unidad: 'cm', dificultad: 1, tiempo: '1 fin de semana', personas: 1,
     vistas: [
@@ -155,6 +163,7 @@ export default [
   },
   {
     id: 'lenera', categoria: 'exterior', nombre: 'Leñera',
+    modelo: lenera({ L: 200, W: 80, H: 180 }),
     resumen: 'Cobertizo abierto para guardar leña seca, con techo a un agua.',
     medidas: { largo: 200, ancho: 80, alto: 180 }, unidad: 'cm', dificultad: 2, tiempo: '1 fin de semana', personas: 2,
     vistas: [
@@ -192,6 +201,7 @@ export default [
   },
   {
     id: 'pergola', categoria: 'exterior', nombre: 'Pérgola 3 × 3 m',
+    modelo: abierto({ L: 300, W: 300, H: 225, pilar: 12, viga: 15, cabios: 42, alero: 40 }),
     resumen: 'Estructura de sombra con 4 pilares, vigas dobles y cabios cada 42 cm.',
     medidas: { largo: 300, ancho: 300, alto: 240 }, unidad: 'm', dificultad: 2, tiempo: '1 fin de semana', personas: 2,
     vistas: [
@@ -235,6 +245,7 @@ export default [
   },
   {
     id: 'cerco-madera', categoria: 'exterior', nombre: 'Cerco de madera (tramo 2,4 m)',
+    modelo: cerco({ L: 240, H: 180 }),
     resumen: 'Módulo de cerco con tablas verticales sobre dos travesaños, repetible.',
     medidas: { largo: 240, ancho: 9, alto: 180 }, unidad: 'cm', dificultad: 1, tiempo: '½ día por tramo', personas: 2,
     vistas: [
