@@ -9,6 +9,11 @@ Prototipo web, pensado para el teléfono, de una app con más de 100 planos para
 - Cada plano tiene un `modelo` 3D (cajas, perfiles y cilindros en cm, ver `js/modelos.js`). Los generadores por familia están en `js/familias.js` (mesas, muebles, camas, edificios, deck…) y las formas propias en `js/especiales.js`.
 - `armar()` (en `js/modelos.js`) saca del modelo las medidas, las vistas Frente/Lateral/Planta y la lista de cortes.
 - `js/render3d.js` usa three.js (desde jsDelivr) para dibujar la imagen del objeto terminado en el teléfono: madera con veta, luz de sol, sombras, pasto o piso de madera. Si no carga, la app muestra los dibujos.
+- `js/uniones.js` busca en el modelo 3D dónde se tocan dos piezas de madera y decide la fijación de cada unión (tornillo, clavo, tirafondo o perno), su largo y la posición exacta de cada tornillo.
+- `js/detalle.js` arma el despiece con letras (A, B, C…), las perforaciones de cada pieza y el total de fijaciones. En construcciones con muros entrega una guía de fijación de tabiquería.
+- `js/despiece.js` dibuja cada pieza con sus medidas y perforaciones (pestaña Cortes).
+- `js/pdf.js` genera el PDF de cada plano en el teléfono con jsPDF (desde cdnjs).
+- `js/cuenta.js` guarda el nombre de la persona y sus trabajos: Favoritos, En progreso y Realizados.
 - Favoritos y avance (materiales comprados, pasos hechos) se guardan en el teléfono con `localStorage`.
 - Se puede agregar a la pantalla de inicio del teléfono (incluye `manifest.webmanifest`).
 

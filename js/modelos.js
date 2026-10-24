@@ -10,7 +10,7 @@ export const cil = (x, y, z, r, h, m = 'imp', eje = 'y', n = '') => ({ t: 'cil',
 // Gira una caja (grados) alrededor de su centro, en orden X, Y, Z.
 export const girar = (p, rx = 0, ry = 0, rz = 0) => ({ ...p, r: [rx, ry, rz] });
 
-const MADERAS = ['pino', 'imp', 'tablero', 'oscuro', 'machi', 'tinglado', 'deck'];
+export const MADERAS = ['pino', 'imp', 'tablero', 'oscuro', 'machi', 'tinglado', 'deck'];
 const ENTORNO = ['pared', 'meson', 'piedra'];
 
 // Marca una parte como entorno (muro, mesón, suelo): se ve en la imagen pero no en planos, medidas ni cortes.
@@ -20,7 +20,7 @@ const propias = (partes) => partes.filter((p) => !esEntorno(p));
 
 // ---------- Geometría ----------
 
-function rotar([x, y, z], [rx, ry, rz]) {
+export function rotar([x, y, z], [rx, ry, rz]) {
   const [a, b, c] = [rx, ry, rz].map((g) => (g * Math.PI) / 180);
   // Mismo orden que three.js ('XYZ'): v' = Rx · Ry · Rz · v
   let [x1, y1] = [x * Math.cos(c) - y * Math.sin(c), x * Math.sin(c) + y * Math.cos(c)];
@@ -157,12 +157,21 @@ const pulgadas = (cm) => (NOMINAL.find(([lim]) => cm <= lim) || [0, String(Math.
 
 const cm = (n) => (Math.round(n * 2) / 2).toLocaleString('es-CL');
 
-export function listaCortes(partes) {
+// Bloques macizos (plataformas, volúmenes de muro dibujados como un solo cuerpo): no son piezas de corte.
+export const esBloque = (p) => {
+  const [a, b] = [p.w, p.h, p.d].sort((x, y) => x - y);
+  return a > 3 && b > 40;
+};
+
+// Piezas de madera agrupadas por medida: cada grupo lleva una letra (A, B, C…) y los índices
+// de las partes del modelo que le pertenecen.
+export function agruparPiezas(partes) {
   const grupos = new Map();
-  for (const p of propias(partes)) {
-    if (p.t !== 'caja' || !MADERAS.includes(p.m) || p.m === 'tinglado' || p.m === 'machi') continue;
+  partes.forEach((p, i) => {
+    if (esEntorno(p) || p.t !== 'caja' || !MADERAS.includes(p.m) || p.m === 'tinglado' || p.m === 'machi') return;
+    if (esBloque(p)) return;
     const [a, b, c] = [p.w, p.h, p.d].map((n) => Math.round(n * 10) / 10).sort((x, y) => x - y);
-    if (a < 0.6) continue;
+    if (a < 0.6) return;
     const pref = p.m === 'imp' || p.m === 'deck' ? 'Pino impregnado' : p.m === 'oscuro' ? 'Madera nativa o pino teñido' : 'Pino cepillado';
     let item;
     let corte;
@@ -174,13 +183,20 @@ export function listaCortes(partes) {
       corte = `${cm(c)} cm`;
     }
     const clave = `${item}|${corte}|${p.n}`;
-    const g = grupos.get(clave) || { item, corte, n: p.n, cuenta: 0 };
-    g.cuenta++;
+    const g = grupos.get(clave) || { item, corte, n: p.n, medidas: [a, b, c], idx: [] };
+    g.idx.push(i);
     grupos.set(clave, g);
-  }
-  return [...grupos.values()]
-    .sort((g, h) => g.item.localeCompare(h.item) || parseFloat(h.corte.replace(',', '.')) - parseFloat(g.corte.replace(',', '.')))
-    .map((g) => ({ item: g.item, cantidad: `${g.cuenta} × ${g.corte}`, uso: g.n || undefined }));
+  });
+  const lista = [...grupos.values()]
+    .sort((g, h) => g.item.localeCompare(h.item) || h.medidas[2] - g.medidas[2]);
+  const letra = (i) => (i < 26 ? String.fromCharCode(65 + i) : String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26)));
+  lista.forEach((g, i) => { g.letra = letra(i); });
+  return lista;
+}
+
+export function listaCortes(partes) {
+  return agruparPiezas(partes)
+    .map((g) => ({ item: g.item, cantidad: `${g.idx.length} × ${g.corte}`, uso: g.n || undefined, pieza: g.letra }));
 }
 
 // ---------- Armar un plano a partir de su modelo ----------

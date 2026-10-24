@@ -294,7 +294,51 @@ function obtenerMotor() {
 }
 
 // Arma la escena de un plano. escena: 'interior' (piso de madera) o 'exterior' (pasto y cielo).
-function armarEscena(plano, renderer) {
+// Vista de armado: la madera se ve translúcida y cada tornillo aparece en rojo, en su lugar y con su largo.
+const transparentes = new Map();
+function translucido(mat) {
+  if (!transparentes.has(mat)) {
+    const t = mat.clone();
+    t.transparent = true;
+    t.opacity = 0.32;
+    t.depthWrite = false;
+    transparentes.set(mat, t);
+  }
+  return transparentes.get(mat);
+}
+
+function agregarTornillos(grupo, uniones, radio) {
+  const puntos = uniones.flatMap((u) => u.puntos.map((pt) => ({ pt, u })));
+  if (!puntos.length) return;
+  const grosor = Math.max(0.4, radio * 0.006);
+  const colores = { tornillo: 0xd7261e, clavo: 0x2f6fd6, tirafondo: 0x8e24aa, perno: 0x8e24aa };
+  const porTipo = new Map();
+  for (const x of puntos) {
+    if (!porTipo.has(x.u.tipo)) porTipo.set(x.u.tipo, []);
+    porTipo.get(x.u.tipo).push(x);
+  }
+  const arriba = new THREE.Vector3(0, 1, 0);
+  for (const [tipo, lista] of porTipo) {
+    const mat = new THREE.MeshStandardMaterial({ color: colores[tipo] || 0xd7261e, roughness: 0.4, metalness: 0.2, emissive: colores[tipo] || 0xd7261e, emissiveIntensity: 0.25 });
+    const caña = new THREE.InstancedMesh(new THREE.CylinderGeometry(grosor, grosor * 0.6, 1, 8), mat, lista.length);
+    const cabeza = new THREE.InstancedMesh(new THREE.CylinderGeometry(grosor * 2.4, grosor * 2.4, grosor * 1.2, 12), mat, lista.length);
+    const m4 = new THREE.Matrix4();
+    const q = new THREE.Quaternion();
+    lista.forEach(({ pt, u }, i) => {
+      const dir = new THREE.Vector3(...u.dir).normalize();
+      q.setFromUnitVectors(arriba, dir);
+      const largo = u.largo / 10;
+      const inicio = new THREE.Vector3(...pt).addScaledVector(dir, -grosor * 0.6);
+      m4.compose(inicio.clone().addScaledVector(dir, largo / 2), q, new THREE.Vector3(1, largo, 1));
+      caña.setMatrixAt(i, m4);
+      m4.compose(inicio, q, new THREE.Vector3(1, 1, 1));
+      cabeza.setMatrixAt(i, m4);
+    });
+    grupo.add(caña, cabeza);
+  }
+}
+
+function armarEscena(plano, renderer, opciones = {}) {
   const m = obtenerMotor();
   const interior = (plano.escena || (plano.categoria === 'muebles' ? 'interior' : 'exterior')) === 'interior';
   const escena = new THREE.Scene();
@@ -306,6 +350,13 @@ function armarEscena(plano, renderer) {
     grupo.add(m3);
     if (!esEntorno(p)) caja.expandByObject(m3);
   });
+  if (opciones.tornillos) {
+    grupo.children.forEach((m3) => {
+      m3.material = translucido(m3.material);
+      m3.castShadow = false;
+    });
+    agregarTornillos(grupo, opciones.tornillos, caja.getSize(new THREE.Vector3()).length() / 2);
+  }
   escena.add(grupo);
   const suelo0 = new THREE.Box3().setFromObject(grupo).min.y;
   const centro = caja.getCenter(new THREE.Vector3());
@@ -368,7 +419,7 @@ function liberar(escena) {
   escena.traverse((o) => {
     if (o.isMesh) {
       o.geometry.dispose();
-      if (!materiales.has(o.material) && ![...materiales.values()].includes(o.material)) {
+      if (![...materiales.values()].includes(o.material) && ![...transparentes.values()].includes(o.material)) {
         o.material.map?.dispose();
         o.material.dispose();
       }
@@ -377,11 +428,11 @@ function liberar(escena) {
 }
 
 // Imagen fija (JPEG) para las tarjetas del catálogo.
-export function foto(plano, ancho = 480, alto = 360) {
+export function foto(plano, ancho = 480, alto = 360, opciones = {}) {
   const { renderer } = obtenerMotor();
   renderer.setPixelRatio(1);
   renderer.setSize(ancho, alto, false);
-  const { escena, centro, radio, tam } = armarEscena(plano, renderer);
+  const { escena, centro, radio, tam } = armarEscena(plano, renderer, opciones);
   renderer.render(escena, camara(ancho / alto, centro, radio, tam));
   const url = renderer.domElement.toDataURL('image/jpeg', 0.86);
   liberar(escena);
@@ -389,7 +440,7 @@ export function foto(plano, ancho = 480, alto = 360) {
 }
 
 // Visor que se puede girar con el dedo, para la página de cada plano.
-export function visor(plano, contenedor) {
+export function visor(plano, contenedor, opciones = {}) {
   const canvas = document.createElement('canvas');
   canvas.className = 'visor-3d';
   contenedor.replaceChildren(canvas);
@@ -402,7 +453,7 @@ export function visor(plano, contenedor) {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   const pmrem = new THREE.PMREMGenerator(renderer);
   const entorno = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-  const { escena, centro, radio, tam } = armarEscena(plano, renderer);
+  const { escena, centro, radio, tam } = armarEscena(plano, renderer, opciones);
   escena.environment = entorno;
   let azimut = 0.62;
   let elev = tam.y > Math.max(tam.x, tam.z) * 1.4 ? 0.18 : 0.32;

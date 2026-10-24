@@ -1,5 +1,8 @@
 import { CATEGORIAS, DIFICULTAD, PLANOS, buscarPlano } from './planos.js';
 import { dibujarVista } from './dibujo.js';
+import * as cuenta from './cuenta.js';
+import { detallar, materialesConFijaciones } from './detalle.js';
+import { tarjetaPieza } from './despiece.js';
 
 const app = document.getElementById('app');
 const titulo = document.getElementById('titulo');
@@ -23,14 +26,7 @@ function guardar(clave, valor) {
   }
 }
 
-let favoritos = new Set(leer('favoritos', []));
 const progreso = leer('progreso', {});
-
-function alternarFavorito(id) {
-  if (favoritos.has(id)) favoritos.delete(id);
-  else favoritos.add(id);
-  guardar('favoritos', [...favoritos]);
-}
 
 function marcas(id, lista) {
   progreso[id] ??= {};
@@ -114,10 +110,13 @@ function activarFotos(raiz = app) {
   });
 }
 
+const ESTADOS = { haciendo: 'En progreso', hecho: 'Realizado' };
+
 function tarjeta(p) {
-  const fav = favoritos.has(p.id);
+  const fav = cuenta.esFavorito(p.id);
+  const est = cuenta.estado(p.id);
   return `<a class="tarjeta" href="#/plano/${p.id}">
-    <div class="tarjeta-foto" data-foto="${p.id}">${dibujarVista(p.vistas[0], p.unidad, { conCotas: false })}</div>
+    <div class="tarjeta-foto" data-foto="${p.id}">${dibujarVista(p.vistas[0], p.unidad, { conCotas: false })}${est ? `<span class="sello sello-${est}">${ESTADOS[est]}</span>` : ''}</div>
     <div class="tarjeta-cuerpo">
       <h3>${esc(p.nombre)}${fav ? ' <span class="estrella" aria-label="Favorito">★</span>' : ''}</h3>
       <p class="tarjeta-medidas">${medidasTexto(p)}</p>
@@ -201,11 +200,61 @@ function pantallaCatalogo(categoria = 'todos', consulta = '') {
   pintar();
 }
 
-function pantallaFavoritos() {
-  titulo.textContent = 'Favoritos';
-  const planos = PLANOS.filter((p) => favoritos.has(p.id));
-  app.innerHTML = listaTarjetas(planos, 'Aún no tienes favoritos. Toca la ☆ en un plano para guardarlo aquí.');
+function pantallaMisTrabajos(lista = 'favoritos') {
+  titulo.textContent = 'Mis trabajos';
+  const perfil = cuenta.perfil();
+  const listas = [
+    { id: 'favoritos', nombre: 'Favoritos', ids: cuenta.favoritos(), vacio: 'Aún no tienes favoritos. Toca la ☆ en un plano para guardarlo aquí.' },
+    { id: 'haciendo', nombre: 'En progreso', ids: cuenta.conEstado('haciendo'), vacio: 'Cuando empieces un plano, toca «Lo estoy haciendo» y aparecerá aquí con su avance.' },
+    { id: 'hecho', nombre: 'Realizados', ids: cuenta.conEstado('hecho'), vacio: 'Aquí quedan los trabajos que ya terminaste.' },
+  ];
+  const actual = listas.find((l) => l.id === lista) || listas[0];
+  app.innerHTML = `
+    <section class="perfil">
+      ${perfil ? `
+        <div class="avatar" aria-hidden="true">${esc(perfil.nombre.trim()[0] || '?').toUpperCase()}</div>
+        <div class="perfil-texto">
+          <strong>${esc(perfil.nombre)}</strong>
+          <span>${listas[2].ids.length} realizados · ${listas[1].ids.length} en progreso</span>
+        </div>
+        <button class="btn-texto" id="editar-perfil">Editar</button>` : `
+        <form id="form-perfil" class="perfil-form">
+          <label for="nombre-perfil">¿Cómo te llamas?</label>
+          <div class="fila">
+            <input id="nombre-perfil" maxlength="40" placeholder="Tu nombre" autocomplete="name">
+            <button class="btn btn-chico">Guardar</button>
+          </div>
+          <span class="perfil-ayuda">Tus trabajos se guardan en este teléfono.</span>
+        </form>`}
+    </section>
+    <div class="chips" role="tablist">
+      ${listas.map((l) => `<a role="tab" class="chip${l === actual ? ' activo' : ''}" aria-selected="${l === actual}" href="#/mis/${l.id}">${l.nombre} <span class="chip-cuenta">${l.ids.length}</span></a>`).join('')}
+    </div>
+    ${actual.id === 'haciendo' && actual.ids.length ? `<div class="lista-avance">${actual.ids.map((id) => {
+      const p = buscarPlano(id);
+      if (!p) return '';
+      const hechos = marcas(id, 'pasos').length;
+      return `<a class="avance-fila" href="#/plano/${id}">
+        <div class="tarjeta-foto mini" data-foto="${id}">${dibujarVista(p.vistas[0], p.unidad, { conCotas: false })}</div>
+        <div><strong>${esc(p.nombre)}</strong><span>${hechos} de ${p.pasos.length} pasos</span>
+        <div class="barra-avance"><i style="width:${Math.round((hechos / p.pasos.length) * 100)}%"></i></div></div></a>`;
+    }).join('')}</div>` : listaTarjetas(actual.ids.map(buscarPlano).filter(Boolean), actual.vacio)}
+  `;
   activarFotos();
+  document.getElementById('form-perfil')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const nombre = document.getElementById('nombre-perfil').value.trim();
+    if (nombre) {
+      cuenta.ponerPerfil(nombre);
+      pantallaMisTrabajos(actual.id);
+    }
+  });
+  document.getElementById('editar-perfil')?.addEventListener('click', () => {
+    const nombre = prompt('Tu nombre', perfil.nombre);
+    if (nombre === null) return;
+    cuenta.ponerPerfil(nombre.trim());
+    pantallaMisTrabajos(actual.id);
+  });
 }
 
 function listaChequeo(plano, lista, items, render) {
@@ -231,12 +280,16 @@ function pantallaPlano(id) {
   titulo.textContent = p.nombre;
   const cat = CATEGORIAS.find((c) => c.id === p.categoria);
   const pasosHechos = marcas(p.id, 'pasos').length;
+  const det = detallar(p);
+  const materiales = materialesConFijaciones(p);
+  const est = cuenta.estado(p.id);
 
   app.innerHTML = `
     <article class="plano">
       <div class="visor">
         <div class="vistas" role="tablist">
           <button role="tab" class="chip activo" data-vista="3d" aria-selected="true">Terminado</button>
+          ${det.uniones.length ? '<button role="tab" class="chip" data-vista="tornillos" aria-selected="false">Tornillos</button>' : ''}
           ${p.vistas.map((v, i) => `<button role="tab" class="chip" data-vista="${i}" aria-selected="false">${v.nombre}</button>`).join('')}
         </div>
         <div class="lienzo" id="lienzo"></div>
@@ -246,10 +299,16 @@ function pantallaPlano(id) {
         <span class="miga">${cat.icono} ${cat.nombre}</span>
         <div class="plano-titulo">
           <h2>${esc(p.nombre)}</h2>
-          <button class="btn-icono" id="fav" aria-pressed="${favoritos.has(p.id)}" aria-label="Guardar en favoritos">${favoritos.has(p.id) ? '★' : '☆'}</button>
+          <button class="btn-icono" id="fav" aria-pressed="${cuenta.esFavorito(p.id)}" aria-label="Guardar en favoritos">${cuenta.esFavorito(p.id) ? '★' : '☆'}</button>
         </div>
         <p>${esc(p.resumen)}</p>
       </header>
+
+      <div class="estado" role="group" aria-label="Mi trabajo">
+        <button class="estado-btn${est === 'haciendo' ? ' activo' : ''}" data-estado="haciendo" aria-pressed="${est === 'haciendo'}">🔨 Lo estoy haciendo</button>
+        <button class="estado-btn${est === 'hecho' ? ' activo' : ''}" data-estado="hecho" aria-pressed="${est === 'hecho'}">✓ Ya lo hice</button>
+      </div>
+      <button class="btn btn-pdf" id="pdf">⬇ Descargar plano en PDF</button>
 
       <dl class="datos">
         <div><dt>Largo × ancho</dt><dd>${medidasTexto(p, { conAlto: false })}</dd></div>
@@ -262,16 +321,18 @@ function pantallaPlano(id) {
 
       <div class="pestanas" role="tablist">
         <button role="tab" class="pestana activo" data-panel="materiales" aria-selected="true">Materiales</button>
+        <button role="tab" class="pestana" data-panel="cortes" aria-selected="false">Cortes</button>
         <button role="tab" class="pestana" data-panel="pasos" aria-selected="false">Pasos</button>
         <button role="tab" class="pestana" data-panel="herramientas" aria-selected="false">Herramientas</button>
       </div>
 
       <section class="panel" id="panel-materiales">
-        ${listaChequeo(p, 'materiales', p.materiales, (m) => `
-          <span class="mat-nombre">${esc(m.item)}</span>
+        ${listaChequeo(p, 'materiales', materiales, (m) => `
+          <span class="mat-nombre">${m.pieza ? `<span class="letra chica">${m.pieza}</span> ` : ''}${esc(m.item)}</span>
           <span class="mat-cantidad">${esc(m.cantidad)}</span>
           ${m.uso ? `<span class="mat-uso">${esc(m.uso)}</span>` : ''}`)}
       </section>
+      <section class="panel" id="panel-cortes" hidden>${panelCortes(p, det)}</section>
       <section class="panel" id="panel-pasos" hidden>
         ${listaChequeo(p, 'pasos', p.pasos, (s, i) => `
           <span class="paso-num">Paso ${i + 1}</span>
@@ -300,18 +361,19 @@ function pantallaPlano(id) {
     limpiar3d?.();
     limpiar3d = null;
     const lienzo = document.getElementById('lienzo');
-    if (v !== '3d') {
+    if (v !== '3d' && v !== 'tornillos') {
       lienzo.innerHTML = dibujarVista(p.vistas[+v], p.unidad);
       return;
     }
-    lienzo.innerHTML = `<div class="lienzo-3d"><div class="cargando">${fotos.get(p.id) ? `<img src="${fotos.get(p.id)}" alt="">` : 'Preparando imagen…'}</div></div>
-      <p class="ayuda-3d">Desliza para girar · así se verá terminado</p>`;
+    const conTornillos = v === 'tornillos';
+    lienzo.innerHTML = `<div class="lienzo-3d"><div class="cargando">${!conTornillos && fotos.get(p.id) ? `<img src="${fotos.get(p.id)}" alt="">` : 'Preparando imagen…'}</div></div>
+      <p class="ayuda-3d">${conTornillos ? '<span class="punto rojo"></span>tornillo <span class="punto azul"></span>clavo <span class="punto morado"></span>tirafondo o perno · desliza para girar' : 'Desliza para girar · así se verá terminado'}</p>`;
     cargar3d().then((m) => {
       const cont = lienzo.querySelector('.lienzo-3d');
       if (!cont || !cont.isConnected) return;
       try {
         if (!m) throw new Error('sin 3D');
-        limpiar3d = m.visor(p, cont);
+        limpiar3d = m.visor(p, cont, conTornillos ? { tornillos: det.uniones } : {});
       } catch {
         lienzo.innerHTML = dibujarVista(p.vistas[0], p.unidad);
       }
@@ -335,15 +397,51 @@ function pantallaPlano(id) {
     if (!e.target.checked && pos >= 0) lista.splice(pos, 1);
     e.target.closest('li').classList.toggle('hecho', e.target.checked);
     guardar('progreso', progreso);
+    if (ul.dataset.lista === 'pasos') {
+      const n = marcas(p.id, 'pasos').length;
+      if (n && !cuenta.estado(p.id)) cuenta.ponerEstado(p.id, 'haciendo');
+      if (n === p.pasos.length && cuenta.estado(p.id) !== 'hecho') {
+        cuenta.ponerEstado(p.id, 'hecho');
+        aviso('¡Terminaste todos los pasos! Quedó en Realizados');
+      }
+      pintarEstado();
+    }
     document.getElementById('avance').textContent = `${marcas(p.id, 'pasos').length}/${p.pasos.length} pasos`;
   }));
 
   const fav = document.getElementById('fav');
   fav.addEventListener('click', () => {
-    alternarFavorito(p.id);
-    const activo = favoritos.has(p.id);
+    const activo = cuenta.alternarFavorito(p.id);
     fav.textContent = activo ? '★' : '☆';
     fav.setAttribute('aria-pressed', activo);
+    aviso(activo ? 'Guardado en favoritos' : 'Quitado de favoritos');
+  });
+
+  const pintarEstado = () => app.querySelectorAll('[data-estado]').forEach((b) => {
+    const activo = cuenta.estado(p.id) === b.dataset.estado;
+    b.classList.toggle('activo', activo);
+    b.setAttribute('aria-pressed', activo);
+  });
+  app.querySelectorAll('[data-estado]').forEach((b) => b.addEventListener('click', () => {
+    const nuevo = cuenta.estado(p.id) === b.dataset.estado ? null : b.dataset.estado;
+    cuenta.ponerEstado(p.id, nuevo);
+    pintarEstado();
+    if (nuevo) aviso(nuevo === 'hecho' ? '¡Bien hecho! Quedó en Realizados' : 'Agregado a En progreso');
+  }));
+
+  document.getElementById('pdf').addEventListener('click', async (e) => {
+    const b = e.currentTarget;
+    b.disabled = true;
+    b.textContent = 'Preparando PDF…';
+    try {
+      const { descargarPdf } = await import('./pdf.js');
+      await descargarPdf(p, { det, materiales, foto: await fotoGrande(p), fotoTornillos: det.uniones.length ? await fotoGrande(p, det.uniones) : null });
+    } catch (err) {
+      console.error(err);
+      aviso('No se pudo crear el PDF');
+    }
+    b.disabled = false;
+    b.textContent = '⬇ Descargar plano en PDF';
   });
 
   document.getElementById('compartir').addEventListener('click', async () => {
@@ -359,6 +457,28 @@ function pantallaPlano(id) {
       }
     }
   });
+}
+
+async function fotoGrande(p, tornillos) {
+  const m = await cargar3d();
+  if (!m) return null;
+  try {
+    return m.foto(p, 1200, 900, tornillos ? { tornillos } : {});
+  } catch {
+    return null;
+  }
+}
+
+function panelCortes(p, det) {
+  const fij = det.fijaciones.length ? `
+    <h3 class="sub">Fijaciones</h3>
+    <ul class="fijaciones">${det.fijaciones.map((f) => `<li><strong>${f.cantidad}</strong> <span>${esc(f.nombre)}${f.uso ? `<small>${esc(f.uso)}</small>` : ''}</span></li>`).join('')}</ul>
+    ${det.edificio ? '' : '<p class="pieza-nota">Cantidades calculadas unión por unión, con 10 % de reserva. En la imagen «Tornillos» ves dónde va cada uno.</p>'}` : '';
+  if (det.edificio) {
+    return `${fij}<p class="pieza-nota">En construcciones, las piezas de tabiquería se cortan en obra a la medida de cada muro: sigue las medidas de la Planta y la lista de materiales.</p>`;
+  }
+  if (!det.grupos.length) return fij || '<p class="vacio">Este plano no tiene piezas de corte.</p>';
+  return `${fij}<h3 class="sub">Despiece</h3><div class="piezas">${det.grupos.map(tarjetaPieza).join('')}</div>`;
 }
 
 function aviso(texto) {
@@ -379,11 +499,12 @@ function ruta() {
 
   document.querySelectorAll('.nav a').forEach((link) => {
     const destino = link.dataset.seccion;
-    link.classList.toggle('activo', destino === (seccion || 'inicio'));
+    link.classList.toggle('activo', destino === (seccion === 'favoritos' ? 'mis' : seccion || 'inicio'));
   });
 
   if (seccion === 'catalogo') pantallaCatalogo(a || 'todos', b ? decodeURIComponent(b) : '');
-  else if (seccion === 'favoritos') pantallaFavoritos();
+  else if (seccion === 'favoritos') pantallaMisTrabajos('favoritos');
+  else if (seccion === 'mis') pantallaMisTrabajos(a);
   else if (seccion === 'plano') pantallaPlano(a);
   else pantallaInicio();
 
