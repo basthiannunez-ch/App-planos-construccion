@@ -163,10 +163,12 @@ export function lenera({ L = 200, W = 80, H = 180 } = {}) {
   }
   p.push(caja(0, 12, 0, L, 9, W, 'imp', 'Bastidor piso'));
   for (let i = 0; i < 7; i++) p.push(caja(0, 21, 2 + i * 11, L, 2, 9, 'imp', 'Tabla piso'));
-  for (let i = 0; i < 6; i++) p.push(caja(0, 40 + i * 20, -2, L, 9, 2, 'imp', 'Listón trasero'));
+  for (let i = 0; i < Math.floor((H - 50) / 20) + 1; i++) p.push(caja(0, 40 + i * 20, -2, L, 9, 2, 'imp', 'Listón trasero'));
   p.push(perfil([[W + 12, H + 2], [-12, H - 20], [-12, H - 16], [W + 12, H + 6]], -12, L + 24, 'zinc', 'x'));
-  for (let f = 0; f < 6; f++) for (let i = 0; i < 9; i++) p.push(cil(-2, 31 + f * 15, 12 + i * 7.5 + (f % 2) * 3, 6.5, L / 2 - 6, 'oscuro', 'x'));
-  for (let f = 0; f < 5; f++) for (let i = 0; i < 9; i++) p.push(cil(L / 2 + 5, 31 + f * 15, 12 + i * 7.5 + (f % 2) * 3, 6.5, L / 2 - 12, 'oscuro', 'x'));
+  const nf = Math.min(6, Math.floor((H - 60) / 15));
+  const nz = Math.floor((W - 22) / 7.5) + 1;
+  for (let f = 0; f < nf; f++) for (let i = 0; i < nz; i++) p.push(cil(-2, 31 + f * 15, 12 + i * 7.5 + (f % 2) * 3, 6.5, L / 2 - 6, 'oscuro', 'x'));
+  for (let f = 0; f < nf - 1; f++) for (let i = 0; i < nz; i++) p.push(cil(L / 2 + 5, 31 + f * 15, 12 + i * 7.5 + (f % 2) * 3, 6.5, L / 2 - 12, 'oscuro', 'x'));
   return p;
 }
 

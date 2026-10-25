@@ -9,7 +9,7 @@ const notaProfesional = 'Ejemplo orientativo: no reemplaza un proyecto firmado p
 const r = (n) => Math.ceil(n);
 
 // Estima materiales de una construcción de entramado a partir de sus medidas (cm).
-function estimar(e) {
+export function estimar(e) {
   const { L, W, H = 240, techo = 'dos', cumbrera = 'z', alero = 30, puertas = [], ventanas = [], tabiques = [], terraza = 0, sinPiso = false } = e;
   const perim = (2 * (L + W)) / 100;
   const vanos = puertas.reduce((s, v) => s + (v.w || 90) * (v.h || 205), 0) + ventanas.reduce((s, v) => s + (v.w || 120) * (v.h || 100), 0);
@@ -57,7 +57,7 @@ function estimar(e) {
   return lista;
 }
 
-const pasosEdificio = (e, extra = []) => [
+export const pasosEdificio = (e, extra = []) => [
   { titulo: 'Permiso y diseño', detalle: 'Consulta en la Dirección de Obras de tu municipio y pide revisión estructural a un profesional.' },
   e.sinPiso
     ? { titulo: 'Radier', detalle: 'Encarga un radier de 10 cm con malla y deja pernos de anclaje cada 1 m para la solera.' }
@@ -71,7 +71,7 @@ const pasosEdificio = (e, extra = []) => [
 ];
 
 // Construcción cerrada: modelo 3D, planta, fachada, lateral, materiales estimados y pasos.
-function construccion(def) {
+export function construccion(def) {
   const e = def.e;
   const partes = [...edificio(e), ...(def.extra || [])];
   return armar({
@@ -94,7 +94,7 @@ function construccion(def) {
 }
 
 // Estructura abierta u objeto especial con vistas proyectadas.
-function estructura(def) {
+export function estructura(def) {
   return armar({
     ...def,
     categoria: cat,

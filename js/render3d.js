@@ -161,6 +161,7 @@ const COLORES = {
   azul: { color: '#3f5f7f', roughness: 0.9 },
   ceramica: { color: '#f7f7f5', roughness: 0.25 },
   meson: { color: '#d9d4cb', roughness: 0.5 },
+  amarillo: { color: '#d9a521', roughness: 0.85 },
 };
 
 const texturas = new Map();
