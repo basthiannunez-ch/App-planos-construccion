@@ -232,10 +232,19 @@ function seccionPerfil(perfil, listas) {
         <span class="perfil-ayuda">Tus trabajos se guardan en este teléfono.</span>
       </form>`;
   }
+  return `
+    <div class="perfil-texto">
+      <strong>Guarda tus trabajos en tu cuenta</strong>
+      <span>Así los ves desde cualquier teléfono.</span>
+    </div>
+    <button class="btn btn-chico" data-sesion>Iniciar sesión</button>`;
+}
+
+function formularioCuenta() {
   const crear = modoCuenta === 'crear';
   return `
     <form id="form-cuenta" class="perfil-form" novalidate>
-      <strong class="perfil-titulo">${crear ? 'Crea tu cuenta' : 'Entra a tu cuenta'}</strong>
+      <strong class="perfil-titulo">${crear ? 'Crea tu cuenta' : 'Inicia sesión'}</strong>
       <span class="perfil-ayuda">${crear ? 'Guarda tus favoritos y tus trabajos y míralos desde cualquier teléfono.' : 'Tus favoritos y trabajos te siguen a cualquier teléfono.'}</span>
       ${crear ? '<input id="cuenta-nombre" maxlength="40" placeholder="Tu nombre" autocomplete="name">' : ''}
       <input id="cuenta-correo" type="email" placeholder="Correo" autocomplete="email" inputmode="email" required>
@@ -248,6 +257,71 @@ function seccionPerfil(perfil, listas) {
       </div>
     </form>`;
 }
+
+// Hoja de inicio de sesión (se abre desde el botón de arriba a la derecha).
+function abrirSesion() {
+  document.querySelector('.hoja-fondo')?.remove();
+  const fondo = document.createElement('div');
+  fondo.className = 'hoja-fondo';
+  fondo.innerHTML = `<div class="hoja" role="dialog" aria-modal="true" aria-label="Iniciar sesión">
+    <button class="btn-icono hoja-cerrar" aria-label="Cerrar">×</button>
+    <div class="hoja-cuerpo"></div></div>`;
+  document.body.append(fondo);
+  const cerrar = () => fondo.remove();
+  fondo.addEventListener('click', (e) => { if (e.target === fondo) cerrar(); });
+  fondo.querySelector('.hoja-cerrar').addEventListener('click', cerrar);
+  const pintar = () => {
+    fondo.querySelector('.hoja-cuerpo').innerHTML = formularioCuenta();
+    activarFormulario(fondo, pintar, () => { cerrar(); ruta(); });
+    fondo.querySelector('input')?.focus();
+  };
+  pintar();
+}
+
+function menuSesion() {
+  document.querySelector('.hoja-fondo')?.remove();
+  const usuario = cuenta.sesion();
+  const nombre = cuenta.perfil()?.nombre || usuario?.email || '';
+  const fondo = document.createElement('div');
+  fondo.className = 'hoja-fondo';
+  fondo.innerHTML = `<div class="hoja" role="dialog" aria-modal="true" aria-label="Mi cuenta">
+    <button class="btn-icono hoja-cerrar" aria-label="Cerrar">×</button>
+    <div class="perfil plano-perfil">
+      <div class="avatar" aria-hidden="true">${esc(nombre.trim()[0] || '?').toUpperCase()}</div>
+      <div class="perfil-texto"><strong>${esc(nombre)}</strong><span>${esc(usuario?.email || '')}</span></div>
+    </div>
+    <a class="btn" href="#/mis">Ver mis trabajos</a>
+    <button class="btn btn-secundario" id="hoja-salir">Cerrar sesión</button></div>`;
+  document.body.append(fondo);
+  const cerrar = () => fondo.remove();
+  fondo.addEventListener('click', (e) => { if (e.target === fondo || e.target.closest('a')) cerrar(); });
+  fondo.querySelector('.hoja-cerrar').addEventListener('click', cerrar);
+  fondo.querySelector('#hoja-salir').addEventListener('click', async () => {
+    await cuenta.salir();
+    cerrar();
+    aviso('Sesión cerrada');
+    ruta();
+  });
+}
+
+const botonSesion = document.getElementById('sesion');
+function pintarBotonSesion() {
+  if (!botonSesion) return;
+  botonSesion.hidden = !cuenta.hayNube;
+  const usuario = cuenta.sesion();
+  if (usuario) {
+    const nombre = cuenta.perfil()?.nombre || usuario.email;
+    botonSesion.className = 'btn-sesion con-sesion';
+    botonSesion.textContent = nombre.trim()[0].toUpperCase();
+    botonSesion.setAttribute('aria-label', `Mi cuenta (${nombre})`);
+  } else {
+    botonSesion.className = 'btn-sesion';
+    botonSesion.textContent = 'Iniciar sesión';
+    botonSesion.setAttribute('aria-label', 'Iniciar sesión');
+  }
+}
+botonSesion?.addEventListener('click', () => (cuenta.sesion() ? menuSesion() : abrirSesion()));
+cuenta.alCambiar(pintarBotonSesion);
 
 let modoCuenta = 'entrar';
 
@@ -272,7 +346,11 @@ function activarPerfil(repintar) {
     aviso('Sesión cerrada');
     repintar();
   });
-  const form = document.getElementById('form-cuenta');
+  app.querySelector('[data-sesion]')?.addEventListener('click', abrirSesion);
+}
+
+function activarFormulario(raiz, repintar, alEntrar) {
+  const form = raiz.querySelector('#form-cuenta');
   if (!form) return;
   const error = document.getElementById('cuenta-error');
   const mostrarError = (t) => { error.textContent = t; error.hidden = !t; };
@@ -306,7 +384,7 @@ function activarPerfil(repintar) {
       else await cuenta.entrar(correo, clave);
       aviso(modoCuenta === 'crear' ? `¡Bienvenido, ${nombre}!` : 'Sesión iniciada');
       modoCuenta = 'entrar';
-      repintar();
+      alEntrar();
     } catch (err) {
       mostrarError(err.message);
       boton.disabled = false;
@@ -553,6 +631,7 @@ function ruta() {
   const [, seccion, a, b] = location.hash.split('/');
   limpiar3d?.();
   limpiar3d = null;
+  document.querySelector('.hoja-fondo')?.remove();
   volver.hidden = seccion !== 'plano';
 
   document.querySelectorAll('.nav a').forEach((link) => {
@@ -578,6 +657,8 @@ window.addEventListener('hashchange', ruta);
 ruta();
 
 // Recupera la sesión guardada y, si cambia (entrar o salir), repinta Mis trabajos.
+pintarBotonSesion();
 cuenta.iniciarSesion().then(() => {
+  pintarBotonSesion();
   if (location.hash.startsWith('#/mis') || location.hash.startsWith('#/favoritos')) ruta();
 }).catch(() => {});

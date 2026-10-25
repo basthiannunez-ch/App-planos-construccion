@@ -524,3 +524,36 @@ button { font: inherit; color: inherit; }
 .perfil-error { margin: 0; color: var(--avanzada); font-size: 0.88rem; }
 .perfil-links { display: flex; justify-content: space-between; flex-wrap: wrap; }
 .perfil-links .btn-texto { padding: 8px 0; }
+
+/* Botón de sesión (arriba a la derecha) y hoja de inicio de sesión */
+.barra h1 { flex: 1; min-width: 0; }
+.btn-sesion {
+  flex: none; margin-left: auto; padding: 7px 12px;
+  border: 1.5px solid rgba(255, 255, 255, 0.7); border-radius: 999px;
+  background: transparent; color: #fff; font-weight: 600; font-size: 0.85rem; cursor: pointer;
+}
+.btn-sesion.con-sesion {
+  width: 36px; height: 36px; padding: 0; border: 0;
+  background: #fff; color: var(--azul); font-size: 1rem; font-weight: 700;
+}
+@media (prefers-color-scheme: dark) { .btn-sesion.con-sesion { color: #1f4e79; } }
+.hoja-fondo {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: flex-end; justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  animation: aparecer 0.15s ease-out;
+}
+.hoja {
+  position: relative; width: 100%; max-width: 480px; max-height: 92vh; overflow-y: auto;
+  padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+  background: var(--superficie); border-radius: 18px 18px 0 0;
+  display: grid; gap: 10px;
+  animation: subir 0.2s ease-out;
+}
+@media (min-width: 600px) { .hoja-fondo { align-items: center; } .hoja { border-radius: 18px; } }
+.hoja-cerrar { position: absolute; top: 4px; right: 4px; font-size: 1.8rem; color: var(--suave); }
+.hoja .perfil { margin: 0; border: 0; padding: 0 0 6px; }
+.hoja a.btn { display: grid; place-items: center; text-decoration: none; }
+.btn.btn-secundario { background: var(--fondo); color: var(--avanzada); border: 1px solid var(--borde); }
+@keyframes aparecer { from { opacity: 0; } }
+@keyframes subir { from { transform: translateY(30px); opacity: 0; } }
