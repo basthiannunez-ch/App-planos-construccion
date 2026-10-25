@@ -8,31 +8,7 @@ const app = document.getElementById('app');
 const titulo = document.getElementById('titulo');
 const volver = document.getElementById('volver');
 
-// --- Estado guardado en el teléfono ---------------------------------------
-
-function leer(clave, porDefecto) {
-  try {
-    return JSON.parse(localStorage.getItem(clave)) ?? porDefecto;
-  } catch {
-    return porDefecto;
-  }
-}
-
-function guardar(clave, valor) {
-  try {
-    localStorage.setItem(clave, JSON.stringify(valor));
-  } catch {
-    // Sin almacenamiento disponible: la app sigue funcionando sin recordar.
-  }
-}
-
-const progreso = leer('progreso', {});
-
-function marcas(id, lista) {
-  progreso[id] ??= {};
-  progreso[id][lista] ??= [];
-  return progreso[id][lista];
-}
+const marcas = cuenta.marcas;
 
 // --- Utilidades de vista ----------------------------------------------------
 
@@ -210,22 +186,7 @@ function pantallaMisTrabajos(lista = 'favoritos') {
   ];
   const actual = listas.find((l) => l.id === lista) || listas[0];
   app.innerHTML = `
-    <section class="perfil">
-      ${perfil ? `
-        <div class="avatar" aria-hidden="true">${esc(perfil.nombre.trim()[0] || '?').toUpperCase()}</div>
-        <div class="perfil-texto">
-          <strong>${esc(perfil.nombre)}</strong>
-          <span>${listas[2].ids.length} realizados · ${listas[1].ids.length} en progreso</span>
-        </div>
-        <button class="btn-texto" id="editar-perfil">Editar</button>` : `
-        <form id="form-perfil" class="perfil-form">
-          <label for="nombre-perfil">¿Cómo te llamas?</label>
-          <div class="fila">
-            <input id="nombre-perfil" maxlength="40" placeholder="Tu nombre" autocomplete="name">
-            <button class="btn btn-chico">Guardar</button>
-          </div>
-          <span class="perfil-ayuda">Tus trabajos se guardan en este teléfono.</span>
-        </form>`}
+    <section class="perfil">${seccionPerfil(perfil, listas)}
     </section>
     <div class="chips" role="tablist">
       ${listas.map((l) => `<a role="tab" class="chip${l === actual ? ' activo' : ''}" aria-selected="${l === actual}" href="#/mis/${l.id}">${l.nombre} <span class="chip-cuenta">${l.ids.length}</span></a>`).join('')}
@@ -241,19 +202,116 @@ function pantallaMisTrabajos(lista = 'favoritos') {
     }).join('')}</div>` : listaTarjetas(actual.ids.map(buscarPlano).filter(Boolean), actual.vacio)}
   `;
   activarFotos();
+  activarPerfil(() => pantallaMisTrabajos(actual.id));
+}
+
+function seccionPerfil(perfil, listas) {
+  const usuario = cuenta.sesion();
+  const resumen = `${listas[2].ids.length} realizados · ${listas[1].ids.length} en progreso`;
+  if (usuario || (perfil && !cuenta.hayNube)) {
+    const nombre = perfil?.nombre || usuario?.email || '';
+    return `
+      <div class="avatar" aria-hidden="true">${esc(nombre.trim()[0] || '?').toUpperCase()}</div>
+      <div class="perfil-texto">
+        <strong>${esc(nombre)}</strong>
+        <span>${usuario ? `${esc(usuario.email)} · ` : ''}${resumen}</span>
+      </div>
+      <div class="perfil-acciones">
+        <button class="btn-texto" id="editar-perfil">Editar</button>
+        ${usuario ? '<button class="btn-texto suave" id="salir">Salir</button>' : ''}
+      </div>`;
+  }
+  if (!cuenta.hayNube) {
+    return `
+      <form id="form-perfil" class="perfil-form">
+        <label for="nombre-perfil">¿Cómo te llamas?</label>
+        <div class="fila">
+          <input id="nombre-perfil" maxlength="40" placeholder="Tu nombre" autocomplete="name">
+          <button class="btn btn-chico">Guardar</button>
+        </div>
+        <span class="perfil-ayuda">Tus trabajos se guardan en este teléfono.</span>
+      </form>`;
+  }
+  const crear = modoCuenta === 'crear';
+  return `
+    <form id="form-cuenta" class="perfil-form" novalidate>
+      <strong class="perfil-titulo">${crear ? 'Crea tu cuenta' : 'Entra a tu cuenta'}</strong>
+      <span class="perfil-ayuda">${crear ? 'Guarda tus favoritos y tus trabajos y míralos desde cualquier teléfono.' : 'Tus favoritos y trabajos te siguen a cualquier teléfono.'}</span>
+      ${crear ? '<input id="cuenta-nombre" maxlength="40" placeholder="Tu nombre" autocomplete="name">' : ''}
+      <input id="cuenta-correo" type="email" placeholder="Correo" autocomplete="email" inputmode="email" required>
+      <input id="cuenta-clave" type="password" placeholder="Contraseña${crear ? ' (mínimo 6 caracteres)' : ''}" autocomplete="${crear ? 'new-password' : 'current-password'}" minlength="6" required>
+      <p class="perfil-error" id="cuenta-error" role="alert" hidden></p>
+      <button class="btn" id="cuenta-enviar">${crear ? 'Crear cuenta' : 'Entrar'}</button>
+      <div class="perfil-links">
+        <button type="button" class="btn-texto" id="cuenta-cambiar">${crear ? 'Ya tengo cuenta' : 'Crear una cuenta nueva'}</button>
+        ${crear ? '' : '<button type="button" class="btn-texto suave" id="cuenta-olvide">Olvidé mi contraseña</button>'}
+      </div>
+    </form>`;
+}
+
+let modoCuenta = 'entrar';
+
+function activarPerfil(repintar) {
   document.getElementById('form-perfil')?.addEventListener('submit', (e) => {
     e.preventDefault();
     const nombre = document.getElementById('nombre-perfil').value.trim();
     if (nombre) {
       cuenta.ponerPerfil(nombre);
-      pantallaMisTrabajos(actual.id);
+      repintar();
     }
   });
   document.getElementById('editar-perfil')?.addEventListener('click', () => {
-    const nombre = prompt('Tu nombre', perfil.nombre);
+    const nombre = prompt('Tu nombre', cuenta.perfil()?.nombre || '');
     if (nombre === null) return;
     cuenta.ponerPerfil(nombre.trim());
-    pantallaMisTrabajos(actual.id);
+    repintar();
+  });
+  document.getElementById('salir')?.addEventListener('click', async () => {
+    if (!confirm('¿Cerrar sesión en este teléfono? Tus trabajos quedan guardados en tu cuenta.')) return;
+    await cuenta.salir();
+    aviso('Sesión cerrada');
+    repintar();
+  });
+  const form = document.getElementById('form-cuenta');
+  if (!form) return;
+  const error = document.getElementById('cuenta-error');
+  const mostrarError = (t) => { error.textContent = t; error.hidden = !t; };
+  document.getElementById('cuenta-cambiar').addEventListener('click', () => {
+    modoCuenta = modoCuenta === 'crear' ? 'entrar' : 'crear';
+    repintar();
+  });
+  document.getElementById('cuenta-olvide')?.addEventListener('click', async () => {
+    const correo = document.getElementById('cuenta-correo').value.trim();
+    if (!correo) return mostrarError('Escribe tu correo y vuelve a tocar «Olvidé mi contraseña».');
+    try {
+      await cuenta.recuperar(correo);
+      mostrarError('');
+      aviso('Te enviamos un correo para crear una contraseña nueva');
+    } catch (err) {
+      mostrarError(err.message);
+    }
+  });
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const correo = document.getElementById('cuenta-correo').value.trim();
+    const clave = document.getElementById('cuenta-clave').value;
+    const nombre = document.getElementById('cuenta-nombre')?.value.trim();
+    if (!correo || !clave) return mostrarError('Escribe tu correo y tu contraseña.');
+    if (modoCuenta === 'crear' && !nombre) return mostrarError('Escribe tu nombre.');
+    const boton = document.getElementById('cuenta-enviar');
+    boton.disabled = true;
+    boton.textContent = modoCuenta === 'crear' ? 'Creando cuenta…' : 'Entrando…';
+    try {
+      if (modoCuenta === 'crear') await cuenta.registrar(correo, clave, nombre);
+      else await cuenta.entrar(correo, clave);
+      aviso(modoCuenta === 'crear' ? `¡Bienvenido, ${nombre}!` : 'Sesión iniciada');
+      modoCuenta = 'entrar';
+      repintar();
+    } catch (err) {
+      mostrarError(err.message);
+      boton.disabled = false;
+      boton.textContent = modoCuenta === 'crear' ? 'Crear cuenta' : 'Entrar';
+    }
   });
 }
 
@@ -396,7 +454,7 @@ function pantallaPlano(id) {
     if (e.target.checked && pos < 0) lista.push(i);
     if (!e.target.checked && pos >= 0) lista.splice(pos, 1);
     e.target.closest('li').classList.toggle('hecho', e.target.checked);
-    guardar('progreso', progreso);
+    cuenta.guardarProgreso();
     if (ul.dataset.lista === 'pasos') {
       const n = marcas(p.id, 'pasos').length;
       if (n && !cuenta.estado(p.id)) cuenta.ponerEstado(p.id, 'haciendo');
@@ -518,3 +576,8 @@ volver.addEventListener('click', () => {
 
 window.addEventListener('hashchange', ruta);
 ruta();
+
+// Recupera la sesión guardada y, si cambia (entrar o salir), repinta Mis trabajos.
+cuenta.iniciarSesion().then(() => {
+  if (location.hash.startsWith('#/mis') || location.hash.startsWith('#/favoritos')) ruta();
+}).catch(() => {});

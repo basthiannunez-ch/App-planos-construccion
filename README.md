@@ -13,7 +13,8 @@ Prototipo web, pensado para el teléfono, de una app con más de 100 planos para
 - `js/detalle.js` arma el despiece con letras (A, B, C…), las perforaciones de cada pieza y el total de fijaciones. En construcciones con muros entrega una guía de fijación de tabiquería.
 - `js/despiece.js` dibuja cada pieza con sus medidas y perforaciones (pestaña Cortes).
 - `js/pdf.js` genera el PDF de cada plano en el teléfono con jsPDF (desde cdnjs).
-- `js/cuenta.js` guarda el nombre de la persona y sus trabajos: Favoritos, En progreso y Realizados.
+- `js/cuenta.js` guarda el nombre de la persona y sus trabajos (Favoritos, En progreso, Realizados y avance) en el teléfono y, si entró con su cuenta, los sincroniza.
+- `js/nube.js` maneja las cuentas con correo y contraseña en Supabase. Se activa cuando `index.html` define `window.PLANOS_NUBE = { url, clave }` (URL del proyecto y clave pública *anon*). La tabla y sus permisos están en `sql/trabajos.sql`.
 - Favoritos y avance (materiales comprados, pasos hechos) se guardan en el teléfono con `localStorage`.
 - Se puede agregar a la pantalla de inicio del teléfono (incluye `manifest.webmanifest`).
 
